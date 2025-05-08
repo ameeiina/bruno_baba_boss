@@ -33,6 +33,15 @@ import com.brunomnsilva.neuralnetworks.core.VectorN;
  * @author brunomnsilva
  */
 public class EuclideanDistance implements MetricDistance {
+    private final int n;
+
+    public EuclideanDistance() {
+        this.n=0;
+    }
+
+    public EuclideanDistance(int n) {
+        this.n=n;
+    }
 
     @Override
     public double distanceBetween(VectorN a, VectorN b) {
@@ -40,7 +49,7 @@ public class EuclideanDistance implements MetricDistance {
 
         int len = a.dimensions();
         double distance = 0;
-        for(int i=0; i < len; i++) {
+        for(int i=n; i < len; i++) {
             distance += (a.get(i) - b.get(i)) * (a.get(i) - b.get(i));
         }
 

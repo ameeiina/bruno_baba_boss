@@ -95,6 +95,7 @@ public class UbiSOM extends StreamingSOM {
                 alpha_0,alpha_f, sigma_0, sigma_f, beta, T);
     }
 
+
     public void orderingState() {
         int width = getWidth();
         int height = getHeight();
