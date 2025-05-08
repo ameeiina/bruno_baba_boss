@@ -1,10 +1,7 @@
 package de.liwa.enkhbaatar;
 
 import com.brunomnsilva.neuralnetworks.core.VectorN;
-import com.brunomnsilva.neuralnetworks.dataset.Dataset;
-import com.brunomnsilva.neuralnetworks.dataset.DatasetNormalization;
-import com.brunomnsilva.neuralnetworks.dataset.InvalidDatasetFormatException;
-import com.brunomnsilva.neuralnetworks.dataset.MinMaxNormalization;
+import com.brunomnsilva.neuralnetworks.dataset.*;
 import com.brunomnsilva.neuralnetworks.models.som.*;
 import com.brunomnsilva.neuralnetworks.models.som.impl.BasicSOM;
 import com.brunomnsilva.neuralnetworks.models.som.impl.UbiSOM;
@@ -20,6 +17,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class MasterSOM {
@@ -91,31 +89,45 @@ public class MasterSOM {
         try {
             // Load a dataset and normalize it
             //Dataset dataset = new Dataset("brunos-datasets/wine.data");
-            Dataset dataset = new Dataset("/Users/aminaenkhbaatar/Desktop/Master/QRUMBLE/search/outputs/MF_eq2000_top30.data");
+            Dataset dataset = new Dataset("/Users/aminaenkhbaatar/Desktop/Master/QRUMBLE/search/outputs/run1_2000_50.data");
             dataset.shuffle();
             DatasetNormalization normalization = new MinMaxNormalization(dataset);
-            normalization.normalize(dataset);
+           // normalization.normalize(dataset);
             // Create basic SOM with random initialization of prototypes
-            int width = 30;
+            int width = 40;
             int height = 20;
-            SelfOrganizingMap som = new UbiSOM(width,height, dataset.inputDimensionality(), new SimpleHexagonalLattice(),new EuclideanDistance(11),0.1, 0.08, 0.6, 0.2, 0.7, 2000); //new BasicSOM(width, height, dataset.inputDimensionality());
+            UbiSOM som = new UbiSOM(
+                    width,
+                    height,
+                    dataset.inputDimensionality(),
+                    new SimpleHexagonalLattice(),
+                    new EuclideanDistance(12),
+                    0.1,
+                    0.08,
+                    0.6,
+                    0.2,
+                    0.7,
+                    2000); //new BasicSOM(width, height, dataset.inputDimensionality());
+
             // Instantiate an offline training algorithm and train the SOM
-            double iLearningRate = 0.5;
-            double fLearningRate = 0.1;
+
+            double iLearningRate = 0.75;
+            double fLearningRate = 0.15;
             double iNeighRadius = 2 * StrictMath.sqrt(som.getWidth() * som.getWidth() + som.getHeight() * som.getHeight());
             double fNeighRadius = 1;
             int orderEpochs = 1000;
-            int fineTuneEpochs = 100;
+            int fineTuneEpochs = 10;
             // Instantiate a training algorithm (classic or batch)
             OfflineLearning learning = new ClassicLearning(iLearningRate, fLearningRate, iNeighRadius, fNeighRadius, orderEpochs, fineTuneEpochs);
             learning.train(som, dataset);
+
             // Print statistics for model fitting
             SelfOrganizingMapStatistics statistics = SelfOrganizingMapStatistics.compute(som, dataset);
             System.out.println(statistics);
             showVisualizations(som, dataset);
-            showHitVisualisation(som, dataset);
-            showTargetVisualisation(som, dataset);
-            featureClustering(som, dataset.inputVariableNames());
+            //showHitVisualisation(som, dataset);
+            //showTargetVisualisation(som, dataset);
+            //featureClustering(som, dataset.inputVariableNames());
         } catch (IOException | InvalidDatasetFormatException e) {
             e.printStackTrace();
         }
