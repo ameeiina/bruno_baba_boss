@@ -4,6 +4,7 @@ import com.brunomnsilva.neuralnetworks.core.VectorN;
 import com.brunomnsilva.neuralnetworks.dataset.*;
 import com.brunomnsilva.neuralnetworks.models.som.*;
 import com.brunomnsilva.neuralnetworks.models.som.impl.BasicSOM;
+import com.brunomnsilva.neuralnetworks.models.som.impl.StreamingSOM;
 import com.brunomnsilva.neuralnetworks.models.som.impl.UbiSOM;
 import com.brunomnsilva.neuralnetworks.view.GenericWindow;
 import com.brunomnsilva.neuralnetworks.view.som.SelfOrganizingMapVisualizationFactory;
@@ -89,14 +90,14 @@ public class MasterSOM {
         try {
             // Load a dataset and normalize it
             //Dataset dataset = new Dataset("brunos-datasets/wine.data");
-            Dataset dataset = new Dataset("/Users/aminaenkhbaatar/Desktop/Master/QRUMBLE/search/outputs/run1_2000_50.data");
+            Dataset dataset = new Dataset("run1_2000_50.data");
             dataset.shuffle();
             DatasetNormalization normalization = new MinMaxNormalization(dataset);
-           // normalization.normalize(dataset);
+            normalization.normalize(dataset);
             // Create basic SOM with random initialization of prototypes
-            int width = 40;
-            int height = 20;
-            UbiSOM som = new UbiSOM(
+            int width = 20;
+            int height = 40;
+            StreamingSOM som = new UbiSOM(
                     width,
                     height,
                     dataset.inputDimensionality(),
