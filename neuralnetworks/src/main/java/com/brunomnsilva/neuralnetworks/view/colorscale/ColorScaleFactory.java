@@ -34,12 +34,12 @@ public class ColorScaleFactory {
     /**
      * An enumeration of the available color scales.
      */
-    public enum Scale {GRAY, HUE, PARULA, VIRIDIS, ORANGE_BLUE };
+    public enum Scale {GRAY, HUE, PARULA, VIRIDIS, ORANGE_BLUE ,RED};
 
     /**
      * The default color scale.
      */
-    public static Scale defaultColorScale = Scale.VIRIDIS;
+    public static Scale defaultColorScale = Scale.RED;
 
     /**
      * Sets the default color scale.
@@ -71,6 +71,7 @@ public class ColorScaleFactory {
             case GRAY: return new ColorScaleGray();
             case PARULA: return new ColorScaleParula();
             case VIRIDIS: return new ColorScaleViridis();
+            case RED: return new ColorScaleRed();
             case ORANGE_BLUE: return new ColorScaleOrangeBlue();
         }
 
@@ -90,4 +91,3 @@ public class ColorScaleFactory {
         return create(scale);
     }
 }
-

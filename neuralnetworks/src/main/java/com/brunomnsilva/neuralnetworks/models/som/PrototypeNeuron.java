@@ -27,6 +27,7 @@ package com.brunomnsilva.neuralnetworks.models.som;
 import com.brunomnsilva.neuralnetworks.core.Args;
 import com.brunomnsilva.neuralnetworks.core.VectorN;
 
+import java.io.Serializable;
 import java.util.Random;
 
 /**
@@ -35,16 +36,16 @@ import java.util.Random;
  *
  * @author brunomnsilva
  */
-public class PrototypeNeuron {
+public class PrototypeNeuron implements Serializable {
     /**
      * The x index of this neuron in the lattice.
      */
-    private int xIndex;
+    int xIndex;
 
     /**
      * The y index of this neuron in the lattice.
      */
-    private int yIndex;
+    int yIndex;
 
     /**
      * The prototype vector of this neuron that represents its position in the input space.

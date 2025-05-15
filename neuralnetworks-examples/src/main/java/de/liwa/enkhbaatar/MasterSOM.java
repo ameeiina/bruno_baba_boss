@@ -1,10 +1,9 @@
 package de.liwa.enkhbaatar;
 
+import com.brunomnsilva.neuralnetworks.core.ConsoleProgressBar;
 import com.brunomnsilva.neuralnetworks.core.VectorN;
 import com.brunomnsilva.neuralnetworks.dataset.*;
 import com.brunomnsilva.neuralnetworks.models.som.*;
-import com.brunomnsilva.neuralnetworks.models.som.impl.BasicSOM;
-import com.brunomnsilva.neuralnetworks.models.som.impl.StreamingSOM;
 import com.brunomnsilva.neuralnetworks.models.som.impl.UbiSOM;
 import com.brunomnsilva.neuralnetworks.view.GenericWindow;
 import com.brunomnsilva.neuralnetworks.view.som.SelfOrganizingMapVisualizationFactory;
@@ -17,8 +16,8 @@ import com.brunomnsilva.yacl.view.DendogramVisualization;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class MasterSOM {
@@ -31,6 +30,22 @@ public class MasterSOM {
 
         public ComponentPlaneWrapper(ComponentPlane componentPlane) {
             this.componentPlane = componentPlane;
+        }
+
+        private static double cosineDistance(ComponentPlane cp1, ComponentPlane cp2) {
+            VectorN Ci = VectorN.fromArray(cp1.flatten());
+            VectorN Cj = VectorN.fromArray(cp2.flatten());
+            double dot = Ci.dot(Cj);
+            double magCi = Ci.magnitude();
+            double magCj = Cj.magnitude();
+            double similarity = dot / (magCi * magCj); // -1 to 1
+            return 1 - similarity;
+        }
+
+        private static double euclideanDistance(ComponentPlane cp1, ComponentPlane cp2) {
+            VectorN Ci = VectorN.fromArray(cp1.flatten());
+            VectorN Cj = VectorN.fromArray(cp2.flatten());
+            return Ci.distance(Cj);
         }
 
         private static double pearsonDistance(ComponentPlane cp1, ComponentPlane cp2) {
@@ -50,22 +65,6 @@ public class MasterSOM {
             return 1 - similarity;
         }
 
-        private static double euclideanDistance(ComponentPlane cp1, ComponentPlane cp2) {
-            VectorN Ci = VectorN.fromArray(cp1.flatten());
-            VectorN Cj = VectorN.fromArray(cp2.flatten());
-            return Ci.distance(Cj);
-        }
-
-        private static double cosineDistance(ComponentPlane cp1, ComponentPlane cp2) {
-            VectorN Ci = VectorN.fromArray(cp1.flatten());
-            VectorN Cj = VectorN.fromArray(cp2.flatten());
-            double dot = Ci.dot(Cj);
-            double magCi = Ci.magnitude();
-            double magCj = Cj.magnitude();
-            double similarity = dot / (magCi * magCj); // -1 to 1
-            return 1 - similarity;
-        }
-
         @Override
         public double clusterableDistance(ComponentPlaneWrapper other) {
             // This must implement some kind of metric distance to be used by the hierarchical clustering
@@ -76,79 +75,14 @@ public class MasterSOM {
         }
 
         @Override
-        public double[] clusterablePoint() {
-            return componentPlane.flatten();
-        }
-
-        @Override
         public String clusterableLabel() {
             return componentPlane.getName();
         }
-    }
 
-    public static void main(String[] args) {
-        try {
-            // Load a dataset and normalize it
-            //Dataset dataset = new Dataset("brunos-datasets/wine.data");
-            Dataset dataset = new Dataset("run1_2000_50.data");
-            dataset.shuffle();
-            DatasetNormalization normalization = new MinMaxNormalization(dataset);
-            normalization.normalize(dataset);
-            // Create basic SOM with random initialization of prototypes
-            int width = 20;
-            int height = 40;
-            StreamingSOM som = new UbiSOM(
-                    width,
-                    height,
-                    dataset.inputDimensionality(),
-                    new SimpleHexagonalLattice(),
-                    new EuclideanDistance(12),
-                    0.1,
-                    0.08,
-                    0.6,
-                    0.2,
-                    0.7,
-                    2000); //new BasicSOM(width, height, dataset.inputDimensionality());
-
-            // Instantiate an offline training algorithm and train the SOM
-
-            double iLearningRate = 0.75;
-            double fLearningRate = 0.15;
-            double iNeighRadius = 2 * StrictMath.sqrt(som.getWidth() * som.getWidth() + som.getHeight() * som.getHeight());
-            double fNeighRadius = 1;
-            int orderEpochs = 1000;
-            int fineTuneEpochs = 10;
-            // Instantiate a training algorithm (classic or batch)
-            OfflineLearning learning = new ClassicLearning(iLearningRate, fLearningRate, iNeighRadius, fNeighRadius, orderEpochs, fineTuneEpochs);
-            learning.train(som, dataset);
-
-            // Print statistics for model fitting
-            SelfOrganizingMapStatistics statistics = SelfOrganizingMapStatistics.compute(som, dataset);
-            System.out.println(statistics);
-            showVisualizations(som, dataset);
-            //showHitVisualisation(som, dataset);
-            //showTargetVisualisation(som, dataset);
-            //featureClustering(som, dataset.inputVariableNames());
-        } catch (IOException | InvalidDatasetFormatException e) {
-            e.printStackTrace();
+        @Override
+        public double[] clusterablePoint() {
+            return componentPlane.flatten();
         }
-    }
-
-    private static void showTargetVisualisation(SelfOrganizingMap som, Dataset dataset) {
-        JPanel[] panels = new JPanel[1];
-        // U-Matrix
-        panels[0] = SelfOrganizingMapVisualizationFactory.createTargetOutputProjection(som, dataset);
-        GenericWindow window = GenericWindow.gridLayout("U-Matrix", 1, 1, panels);
-        window.exitOnClose();
-        window.setVisible(true);
-    }
-
-    private static void showHitVisualisation(SelfOrganizingMap som, Dataset dataset) {
-        JPanel[] panels = new JPanel[1];
-        panels[0] = SelfOrganizingMapVisualizationFactory.createHitMap(som, dataset);
-        GenericWindow window = GenericWindow.gridLayout("Hit-Matrix", 1, 1, panels);
-        window.exitOnClose();
-        window.setVisible(true);
     }
 
     private static void featureClustering(SelfOrganizingMap som, String[] inputNames) {
@@ -167,6 +101,64 @@ public class MasterSOM {
         GenericWindow window = GenericWindow.horizontalLayout("Feature Clustering", viz);
         window.setPreferredSize(new Dimension(1000, 800));
         window.pack();
+        window.exitOnClose();
+        window.setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        try {
+            // Load a dataset and normalize it
+            //Dataset dataset = new Dataset("brunos-datasets/wine.data");
+            Dataset dataset = new Dataset("run1_2000_50.data");
+            dataset.shuffle();
+            DatasetNormalization normalization = new MinMaxNormalization(dataset);
+            // normalization.normalize(dataset);
+            // Create basic SOM with random initialization of prototypes
+            int width = 40;
+            int height = 20;
+            UbiSOM som = new UbiSOM(width, height, dataset.inputDimensionality(), new SimpleRectangularLattice(), new EuclideanDistance(12), 0.1,
+                    0.08, 0.6, 0.2, 0.7, 2000);
+            int orderEpochs = 100;
+            try {
+                som.load(Path.of("models"), "som");
+            } catch (IOException _) {
+            }
+            ConsoleProgressBar progress = new ConsoleProgressBar(orderEpochs);
+            int epochCount = 1;
+            for (int i = 0; i < orderEpochs; ++i) {
+                for (DatasetItem datasetItem : dataset) {
+                    som.learn(datasetItem.getInput());
+                }
+                progress.update(epochCount++);
+            }
+            System.out.println();
+            som.save(Path.of("models"), "som");
+            som.print(Path.of("models"), "som");
+            // Print statistics for model fitting
+            SelfOrganizingMapStatistics statistics = SelfOrganizingMapStatistics.compute(som, dataset);
+            System.out.println(statistics);
+            showVisualizations(som, dataset);
+            //showHitVisualisation(som, dataset);
+            //showTargetVisualisation(som, dataset);
+            //featureClustering(som, dataset.inputVariableNames());
+        } catch (IOException | InvalidDatasetFormatException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void showHitVisualisation(SelfOrganizingMap som, Dataset dataset) {
+        JPanel[] panels = new JPanel[1];
+        panels[0] = SelfOrganizingMapVisualizationFactory.createHitMap(som, dataset);
+        GenericWindow window = GenericWindow.gridLayout("Hit-Matrix", 1, 1, panels);
+        window.exitOnClose();
+        window.setVisible(true);
+    }
+
+    private static void showTargetVisualisation(SelfOrganizingMap som, Dataset dataset) {
+        JPanel[] panels = new JPanel[1];
+        // U-Matrix
+        panels[0] = SelfOrganizingMapVisualizationFactory.createTargetOutputProjection(som, dataset);
+        GenericWindow window = GenericWindow.gridLayout("U-Matrix", 1, 1, panels);
         window.exitOnClose();
         window.setVisible(true);
     }
@@ -191,7 +183,7 @@ public class MasterSOM {
         for (d = 0; d < dimensionality; ++d) {
             panels[d + 1] = SelfOrganizingMapVisualizationFactory.createComponentPlane(som, d, dataset.inputVariableNames()[d]);
         }
-        GenericWindow window = GenericWindow.gridLayout("U-Matrix and Component Planes", 3, 6, panels);
+        GenericWindow window = GenericWindow.gridLayout("U-Matrix and Component Planes", 5, 4, panels);
         window.exitOnClose();
         window.setVisible(true);
     }

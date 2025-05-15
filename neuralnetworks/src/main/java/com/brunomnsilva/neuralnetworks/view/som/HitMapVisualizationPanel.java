@@ -72,7 +72,7 @@ public class HitMapVisualizationPanel extends AbstractVisualizationPanel {
 
         // This will ensure that cells are filled proportionally
         // to their values. This is specific to this type of visualization.
-        grid.setValuesToSize(true);
+        //grid.setValuesToSize(true);
     }
 
     @Override

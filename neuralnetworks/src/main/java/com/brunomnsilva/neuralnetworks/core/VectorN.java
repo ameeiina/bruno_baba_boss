@@ -24,6 +24,7 @@
 
 package com.brunomnsilva.neuralnetworks.core;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -32,7 +33,7 @@ import java.util.Random;
  *
  * @author brunomnsilva
  */
-public class VectorN implements Comparable<VectorN> {
+public class VectorN implements Serializable, Comparable<VectorN> {
 
     /**
      * Random number generator for creating random vectors.

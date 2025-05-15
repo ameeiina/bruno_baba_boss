@@ -28,6 +28,10 @@ import com.brunomnsilva.neuralnetworks.core.AbstractObservable;
 import com.brunomnsilva.neuralnetworks.core.Args;
 import com.brunomnsilva.neuralnetworks.core.VectorN;
 
+import java.io.*;
+import java.lang.reflect.Parameter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
@@ -50,6 +54,9 @@ import java.util.Iterator;
  */
 public abstract class SelfOrganizingMap extends AbstractObservable
         implements Iterable<PrototypeNeuron> {
+
+    private record Parameter(int width, int height, int dimensionality, List<PrototypeNeuron> prototypeNeuronList) implements Serializable {
+    }
 
     protected int width, height, dimensionality;
 
@@ -239,6 +246,66 @@ public abstract class SelfOrganizingMap extends AbstractObservable
         return sb.toString();
     }
 
+    public void load(Path path, String modelName) throws IOException {
+        load(new FileInputStream(new File(path.toFile(), modelName + ".bin")));
+    }
+
+    void load(InputStream inputStream) throws IOException {
+        try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
+            Parameter parameter = (Parameter) objectInputStream.readObject();
+            this.width = parameter.width;
+            this.height = parameter.height;
+            this.dimensionality = parameter.dimensionality;
+            this.prototypesList = new ArrayList<>();
+            for (PrototypeNeuron prototypeNeuron : parameter.prototypeNeuronList) {
+                this.prototypeGrid[prototypeNeuron.xIndex][prototypeNeuron.yIndex] = prototypeNeuron;
+                this.prototypesList.add(prototypeNeuron);
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void save(Path path, String modelName) throws IOException {
+        if (Files.notExists(path)) {
+            Files.createDirectories(path);
+        }
+        save(new FileOutputStream(new File(path.toFile(), modelName + ".bin")));
+    }
+
+    public void save(OutputStream outputStream) throws IOException {
+        try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)) {
+            objectOutputStream.writeObject(new Parameter(this.width, this.height, this.dimensionality, this.prototypesList));
+        }
+    }
+
+    public void save(File file) throws IOException {
+        try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(file))) {
+            objectOutputStream.writeObject(new Parameter(this.width, this.height, this.dimensionality, this.prototypesList));
+        }
+    }
+
+    public void print(Path path, String modelName) throws IOException {
+        if (Files.notExists(path)) {
+            Files.createDirectories(path);
+        }
+        try (PrintWriter writer = new PrintWriter(new File(path.toFile(), modelName + ".csv"))) {
+            for(int k=0;k<width;++k){
+                for(int i=0;i<height;++i){
+                    for(int l=0;l<prototypeGrid[k][i].getPrototype().dimensions();++l) {
+                        if (l>0)
+                            writer.print(",");
+                        writer.print((int) prototypeGrid[k][i].getPrototype().get(l));
+                    }
+                    writer.println();
+                }
+            }
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
     /**
      * Used by a caller to signal that the SOM has changed its state.
      * This will notify all registered observers.
