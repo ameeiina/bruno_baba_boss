@@ -53,7 +53,6 @@ public class GenericGridPanel extends JPanel {
     //////////////////////////////////////////////////////////////////////////////////////////////
     // DRAWING
     private static final int X_OFFSET = 20;
-
     ;
     private static final int Y_OFFSET = 20;
     /** The lattice type to draw. */
@@ -225,7 +224,6 @@ public class GenericGridPanel extends JPanel {
     public void update() {
         synchronized (this) {
             checkLimits();
-            this.colorScale.setScale(0, 800);
             repaint();
             colorScale.repaint();
         }

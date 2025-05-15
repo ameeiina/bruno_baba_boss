@@ -2,7 +2,9 @@ package de.liwa.enkhbaatar;
 
 import com.brunomnsilva.neuralnetworks.core.ConsoleProgressBar;
 import com.brunomnsilva.neuralnetworks.core.VectorN;
-import com.brunomnsilva.neuralnetworks.dataset.*;
+import com.brunomnsilva.neuralnetworks.dataset.Dataset;
+import com.brunomnsilva.neuralnetworks.dataset.DatasetItem;
+import com.brunomnsilva.neuralnetworks.dataset.InvalidDatasetFormatException;
 import com.brunomnsilva.neuralnetworks.models.som.*;
 import com.brunomnsilva.neuralnetworks.models.som.impl.UbiSOM;
 import com.brunomnsilva.neuralnetworks.view.GenericWindow;
@@ -108,17 +110,18 @@ public class MasterSOM {
     public static void main(String[] args) {
         try {
             // Load a dataset and normalize it
-            //Dataset dataset = new Dataset("brunos-datasets/wine.data");
+            //Dataset dataset = new Dataset("datasets/wine.data");
             Dataset dataset = new Dataset("run1_2000_50.data");
+            dataset.crop(0, 1500);
             dataset.shuffle();
-            DatasetNormalization normalization = new MinMaxNormalization(dataset);
+            // DatasetNormalization normalization = new MinMaxNormalization(dataset);
             // normalization.normalize(dataset);
             // Create basic SOM with random initialization of prototypes
             int width = 40;
             int height = 20;
             UbiSOM som = new UbiSOM(width, height, dataset.inputDimensionality(), new SimpleRectangularLattice(), new EuclideanDistance(12), 0.1,
                     0.08, 0.6, 0.2, 0.7, 2000);
-            int orderEpochs = 100;
+            int orderEpochs = 1000;
             try {
                 som.load(Path.of("models"), "som");
             } catch (IOException _) {
@@ -156,7 +159,7 @@ public class MasterSOM {
 
     private static void showTargetVisualisation(SelfOrganizingMap som, Dataset dataset) {
         JPanel[] panels = new JPanel[1];
-        // U-Matrix
+        // Target
         panels[0] = SelfOrganizingMapVisualizationFactory.createTargetOutputProjection(som, dataset);
         GenericWindow window = GenericWindow.gridLayout("U-Matrix", 1, 1, panels);
         window.exitOnClose();
@@ -175,14 +178,13 @@ public class MasterSOM {
     private static void showVisualizations(SelfOrganizingMap som, Dataset dataset) {
         int dimensionality = som.getDimensionality();
         // Create a set of panels for U-Matrix + all component planes
-        JPanel[] panels = new JPanel[dimensionality + 1];
-        // Create the U-Matrix
-        panels[0] = SelfOrganizingMapVisualizationFactory.createUMatrix(som);
+        JPanel[] panels = new JPanel[dimensionality + 1 - 1];
         // Create the component planes
-        int d;
-        for (d = 0; d < dimensionality; ++d) {
-            panels[d + 1] = SelfOrganizingMapVisualizationFactory.createComponentPlane(som, d, dataset.inputVariableNames()[d]);
+        for (int d = 1; d < dimensionality; ++d) { //skip top
+            panels[d - 1] = SelfOrganizingMapVisualizationFactory.createComponentPlane(som, d, dataset.inputVariableNames()[d]);
         }
+        // Create the U-Matrix
+        panels[dimensionality - 1] = SelfOrganizingMapVisualizationFactory.createUMatrix(som);
         GenericWindow window = GenericWindow.gridLayout("U-Matrix and Component Planes", 5, 4, panels);
         window.exitOnClose();
         window.setVisible(true);

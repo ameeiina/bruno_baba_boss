@@ -29,12 +29,11 @@ import com.brunomnsilva.neuralnetworks.core.Args;
 import com.brunomnsilva.neuralnetworks.core.VectorN;
 
 import java.io.*;
-import java.lang.reflect.Parameter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * A Self-Organizing Map is composed by a 2d grid (lattice) of data prototypes (neurons).
@@ -52,23 +51,18 @@ import java.util.Iterator;
  *
  * @author brunomnsilva
  */
-public abstract class SelfOrganizingMap extends AbstractObservable
-        implements Iterable<PrototypeNeuron> {
-
-    private record Parameter(int width, int height, int dimensionality, List<PrototypeNeuron> prototypeNeuronList) implements Serializable {
-    }
-
+public abstract class SelfOrganizingMap extends AbstractObservable implements Iterable<PrototypeNeuron> {
+    private final MetricDistance metricDistance;
+    private final Lattice lattice;
     protected int width, height, dimensionality;
-
     // Both structures will contain the same prototypes (references)
     // One is more useful for iterations (List), while the other (2d-array)
     // is more efficient for index-based direct access
     protected List<PrototypeNeuron> prototypesList;
     protected PrototypeNeuron[][] prototypeGrid;
 
-    private final MetricDistance metricDistance;
-
-    private final Lattice lattice;
+    private record Parameter(int width, int height, int dimensionality, List<PrototypeNeuron> prototypeNeuronList) implements Serializable {
+    }
 
     /**
      * Instantiates a new self-organizing map (SOM).
@@ -80,27 +74,21 @@ public abstract class SelfOrganizingMap extends AbstractObservable
      * @throws IllegalArgumentException if width, height or dimensionality are not greater than 0;
      *                                  if lattice or metricDistance are null.
      */
-    public SelfOrganizingMap(int width, int height, int dimensionality,
-                             Lattice lattice, MetricDistance metricDistance) {
+    public SelfOrganizingMap(int width, int height, int dimensionality, Lattice lattice, MetricDistance metricDistance) {
         Args.requireGreaterEqualThan(width, "width", 0);
         Args.requireGreaterEqualThan(height, "height", 0);
         Args.requireGreaterEqualThan(dimensionality, "dimensionality", 0);
-
         this.width = width;
         this.height = height;
         this.dimensionality = dimensionality;
-
         this.lattice = lattice;
         // 'Inject' lattice size
         this.lattice.setSize(width, height);
-
         this.metricDistance = metricDistance;
-
         this.prototypesList = new ArrayList<>();
         this.prototypeGrid = new PrototypeNeuron[width][height];
-
-        for(int w=0; w < width; ++w) {
-            for(int h=0; h < height; ++h) {
+        for (int w = 0; w < width; ++w) {
+            for (int h = 0; h < height; ++h) {
                 // The prototype constructor performs a random initialization (0,1)
                 // Better than to leave them with zeros initially
                 PrototypeNeuron p = new PrototypeNeuron(w, h, dimensionality);
@@ -124,6 +112,37 @@ public abstract class SelfOrganizingMap extends AbstractObservable
     }
 
     /**
+     * Computes the Best Matching Unit (BMU) for an <code>input</code>.
+     * This is the prototype neuron that is closest to the <i>input</i>
+     * according to the current <i>distance metric</i>.
+     * @param input the input
+     * @return the BMU for the input
+     */
+    public final PrototypeNeuron bestMatchingUnitFor(VectorN input) {
+        PrototypeNeuron bmu = prototypesList.get(0);
+        double minDist = metricDistance.distanceBetween(bmu.getPrototype(), input);
+        for (PrototypeNeuron p : prototypesList) {
+            double dist = metricDistance.distanceBetween(p.getPrototype(), input);
+            if (dist < minDist) {
+                bmu = p;
+                minDist = dist;
+            }
+        }
+        return bmu;
+    }
+
+    /**
+     * Computes the distance between two prototype's vectors.
+     * It delegates the computation to the current <i>metric distance</i>.
+     * @param a prototype neuron #1
+     * @param b prototype neuron #2
+     * @return the vector distance
+     */
+    public final double distanceBetweenPrototypes(PrototypeNeuron a, PrototypeNeuron b) {
+        return metricDistance.distanceBetween(a.getPrototype(), b.getPrototype());
+    }
+
+    /**
      * Returns the prototype neuron (reference) at a lattice location.
      * @param xIndex x grid index in [0, width[.
      * @param yIndex y grid index in [0, height[.
@@ -133,9 +152,30 @@ public abstract class SelfOrganizingMap extends AbstractObservable
     public PrototypeNeuron get(int xIndex, int yIndex) {
         Args.requireInRange(xIndex, "xIndex", 0, width);
         Args.requireInRange(yIndex, "yIndex", 0, height);
-
         return prototypeGrid[xIndex][yIndex];
     }
+
+    /**
+     * Returns the dimensionality of the prototypes.
+     * @return the dimensionality
+     */
+    public int getDimensionality() {
+        return dimensionality;
+    }
+
+    /**
+     * Returns the height of the 2d SOM lattice.
+     * @return the height
+     */
+    public int getHeight() {
+        return height;
+    }
+
+    /**
+     * Returns a name describing this implementation/variant of the SelfOrganizingMap.
+     * @return a name describing this implementation/variant of the SelfOrganizingMap
+     */
+    public abstract String getImplementationName();
 
     /**
      * Returns the current lattice shape.
@@ -154,6 +194,19 @@ public abstract class SelfOrganizingMap extends AbstractObservable
     }
 
     /**
+     * Returns the width of the 2d SOM lattice.
+     * @return the width
+     */
+    public int getWidth() {
+        return width;
+    }
+
+    @Override
+    public final Iterator<PrototypeNeuron> iterator() {
+        return prototypesList.iterator();
+    }
+
+    /**
      * Computes the lattice distance between two prototype neurons.
      * It delegates the computation to the current <i>lattice</i> shape.
      * @param a prototype neuron #1
@@ -164,106 +217,43 @@ public abstract class SelfOrganizingMap extends AbstractObservable
         return lattice.distanceBetween(a, b);
     }
 
-    /**
-     * Computes the distance between two prototype's vectors.
-     * It delegates the computation to the current <i>metric distance</i>.
-     * @param a prototype neuron #1
-     * @param b prototype neuron #2
-     * @return the vector distance
-     */
-    public final double distanceBetweenPrototypes(PrototypeNeuron a, PrototypeNeuron b) {
-        return metricDistance.distanceBetween(a.getPrototype(), b.getPrototype());
-    }
-
-    /**
-     * Computes the Best Matching Unit (BMU) for an <code>input</code>.
-     * This is the prototype neuron that is closest to the <i>input</i>
-     * according to the current <i>distance metric</i>.
-     * @param input the input
-     * @return the BMU for the input
-     */
-    public final PrototypeNeuron bestMatchingUnitFor(VectorN input) {
-        PrototypeNeuron bmu = prototypesList.get(0);
-        double minDist = metricDistance.distanceBetween(bmu.getPrototype(), input);
-
-        for (PrototypeNeuron p : prototypesList) {
-            double dist = metricDistance.distanceBetween(p.getPrototype(), input);
-            if(dist < minDist) {
-                bmu = p;
-                minDist = dist;
-            }
-        }
-        return bmu;
-    }
-
-    /**
-     * Returns the width of the 2d SOM lattice.
-     * @return the width
-     */
-    public int getWidth() {
-        return width;
-    }
-
-    /**
-     * Returns the height of the 2d SOM lattice.
-     * @return the height
-     */
-    public int getHeight() {
-        return height;
-    }
-
-    /**
-     * Returns the dimensionality of the prototypes.
-     * @return the dimensionality
-     */
-    public int getDimensionality() {
-        return dimensionality;
-    }
-
-    /**
-     * Returns a name describing this implementation/variant of the SelfOrganizingMap.
-     * @return a name describing this implementation/variant of the SelfOrganizingMap
-     */
-    public abstract String getImplementationName();
-
-    @Override
-    public final Iterator<PrototypeNeuron> iterator() {
-        return prototypesList.iterator();
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(String.format("%s (%d x %d x %d) | %s | %s: \n",
-                getImplementationName(), width, height, dimensionality,
-                lattice.getClass().getSimpleName(),
-                metricDistance.getClass().getSimpleName()));
-        for (PrototypeNeuron p : prototypesList) {
-            sb.append(p).append("\n");
-        }
-
-        return sb.toString();
-    }
-
     public void load(Path path, String modelName) throws IOException {
         load(new FileInputStream(new File(path.toFile(), modelName + ".bin")));
     }
 
-    void load(InputStream inputStream) throws IOException {
-        try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
-            Parameter parameter = (Parameter) objectInputStream.readObject();
-            this.width = parameter.width;
-            this.height = parameter.height;
-            this.dimensionality = parameter.dimensionality;
-            this.prototypesList = new ArrayList<>();
-            for (PrototypeNeuron prototypeNeuron : parameter.prototypeNeuronList) {
-                this.prototypeGrid[prototypeNeuron.xIndex][prototypeNeuron.yIndex] = prototypeNeuron;
-                this.prototypesList.add(prototypeNeuron);
+    public void print(Path path, String modelName) throws IOException {
+        if (Files.notExists(path)) {
+            Files.createDirectories(path);
+        }
+        try (PrintWriter writer = new PrintWriter(new File(path.toFile(), modelName + ".csv"))) {
+            writer.println("top,\tYield,\tROC,\tEarningsYield,\tRS(6m),\tROA,\tΔROA,\tAccrualRatio,\tΔLTDebt-to-Assets,\tΔCurrentRatio,\tΔOpMgn," +
+                    "\tΔAssetTurnover,\tannualized,\tmean,\tstd,\tsharpe,\talpha,\tbeta,\tvar,\tone,\ttwo");
+            for (int k = 0; k < width; ++k) {
+                for (int i = 0; i < height; ++i) {
+                    for (int l = 0; l < prototypeGrid[k][i].getPrototype().dimensions(); ++l) {
+                        if (l > 0) {
+                            writer.print(",\t");
+                        }
+                        writer.print((int) prototypeGrid[k][i].getPrototype().get(l));
+                    }
+                    writer.println(",\t0,\t0");
+                }
             }
-        } catch (ClassNotFoundException e) {
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Used by a caller to signal that the SOM has changed its state.
+     * This will notify all registered observers.
+     * <br/>
+     * No verification is made to check if anything has really changed.
+     */
+    public void prototypesUpdated() { //TODO: change name of method?
+        notifyObservers();
     }
 
     public void save(Path path, String modelName) throws IOException {
@@ -285,34 +275,30 @@ public abstract class SelfOrganizingMap extends AbstractObservable
         }
     }
 
-    public void print(Path path, String modelName) throws IOException {
-        if (Files.notExists(path)) {
-            Files.createDirectories(path);
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("%s (%d x %d x %d) | %s | %s: \n", getImplementationName(), width, height, dimensionality,
+                lattice.getClass().getSimpleName(), metricDistance.getClass().getSimpleName()));
+        for (PrototypeNeuron p : prototypesList) {
+            sb.append(p).append("\n");
         }
-        try (PrintWriter writer = new PrintWriter(new File(path.toFile(), modelName + ".csv"))) {
-            for(int k=0;k<width;++k){
-                for(int i=0;i<height;++i){
-                    for(int l=0;l<prototypeGrid[k][i].getPrototype().dimensions();++l) {
-                        if (l>0)
-                            writer.print(",");
-                        writer.print((int) prototypeGrid[k][i].getPrototype().get(l));
-                    }
-                    writer.println();
-                }
-            }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return sb.toString();
     }
-    /**
-     * Used by a caller to signal that the SOM has changed its state.
-     * This will notify all registered observers.
-     * <br/>
-     * No verification is made to check if anything has really changed.
-     */
-    public void prototypesUpdated() { //TODO: change name of method?
-        notifyObservers();
+
+    void load(InputStream inputStream) throws IOException {
+        try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
+            Parameter parameter = (Parameter) objectInputStream.readObject();
+            this.width = parameter.width;
+            this.height = parameter.height;
+            this.dimensionality = parameter.dimensionality;
+            this.prototypesList = new ArrayList<>();
+            for (PrototypeNeuron prototypeNeuron : parameter.prototypeNeuronList) {
+                this.prototypeGrid[prototypeNeuron.xIndex][prototypeNeuron.yIndex] = prototypeNeuron;
+                this.prototypesList.add(prototypeNeuron);
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

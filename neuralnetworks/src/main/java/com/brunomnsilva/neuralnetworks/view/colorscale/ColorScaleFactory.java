@@ -30,34 +30,16 @@ package com.brunomnsilva.neuralnetworks.view.colorscale;
  * @author brunomnsilva
  */
 public class ColorScaleFactory {
-
-    /**
-     * An enumeration of the available color scales.
-     */
-    public enum Scale {GRAY, HUE, PARULA, VIRIDIS, ORANGE_BLUE ,RED};
-
     /**
      * The default color scale.
      */
-    public static Scale defaultColorScale = Scale.RED;
+    public static Scale defaultColorScale = Scale.HUE;
 
+    ;
     /**
-     * Sets the default color scale.
-     *
-     * @param defaultColorScale the new default color scale to set
+     * An enumeration of the available color scales.
      */
-    public static void setDefaultColorScale(Scale defaultColorScale) {
-        ColorScaleFactory.defaultColorScale = defaultColorScale;
-    }
-
-    /**
-     * Creates a new color scale using the default color scale.
-     *
-     * @return a new color scale using the default color scale
-     */
-    public static ColorScale createDefault() {
-        return create(defaultColorScale);
-    }
+    public enum Scale {GRAY, HUE, PARULA, VIRIDIS, ORANGE_BLUE, RED}
 
     /**
      * Creates a new color scale of the specified type.
@@ -67,14 +49,19 @@ public class ColorScaleFactory {
      */
     public static ColorScale create(Scale type) {
         switch (type) {
-            case HUE: return new ColorScaleHue();
-            case GRAY: return new ColorScaleGray();
-            case PARULA: return new ColorScaleParula();
-            case VIRIDIS: return new ColorScaleViridis();
-            case RED: return new ColorScaleRed();
-            case ORANGE_BLUE: return new ColorScaleOrangeBlue();
+            case HUE:
+                return new ColorScaleHue();
+            case GRAY:
+                return new ColorScaleGray();
+            case PARULA:
+                return new ColorScaleParula();
+            case VIRIDIS:
+                return new ColorScaleViridis();
+            case RED:
+                return new ColorScaleRed();
+            case ORANGE_BLUE:
+                return new ColorScaleOrangeBlue();
         }
-
         // Default to.. default colorscale, e.g., if null
         return createDefault();
     }
@@ -89,5 +76,23 @@ public class ColorScaleFactory {
     public static ColorScale create(String name) throws IllegalArgumentException {
         Scale scale = Scale.valueOf(name.toUpperCase());
         return create(scale);
+    }
+
+    /**
+     * Creates a new color scale using the default color scale.
+     *
+     * @return a new color scale using the default color scale
+     */
+    public static ColorScale createDefault() {
+        return create(defaultColorScale);
+    }
+
+    /**
+     * Sets the default color scale.
+     *
+     * @param defaultColorScale the new default color scale to set
+     */
+    public static void setDefaultColorScale(Scale defaultColorScale) {
+        ColorScaleFactory.defaultColorScale = defaultColorScale;
     }
 }
